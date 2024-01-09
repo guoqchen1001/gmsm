@@ -114,7 +114,7 @@ func (pub *PublicKey) Sm3Digest(msg, uid []byte) ([]byte, error) {
 	return e.Bytes(), nil
 }
 
-//****************************Encryption algorithm****************************//
+// ****************************Encryption algorithm****************************//
 func (pub *PublicKey) EncryptAsn1(data []byte, random io.Reader) ([]byte, error) {
 	return EncryptAsn1(pub, data, random)
 }
@@ -123,7 +123,7 @@ func (priv *PrivateKey) DecryptAsn1(data []byte) ([]byte, error) {
 	return DecryptAsn1(priv, data)
 }
 
-//**************************Key agreement algorithm**************************//
+// **************************Key agreement algorithm**************************//
 // KeyExchangeB 协商第二部，用户B调用， 返回共享密钥k
 func KeyExchangeB(klen int, ida, idb []byte, priB *PrivateKey, pubA *PublicKey, rpri *PrivateKey, rpubA *PublicKey) (k, s1, s2 []byte, err error) {
 	return keyExchange(klen, ida, idb, priB, pubA, rpri, rpubA, false)
@@ -134,13 +134,20 @@ func KeyExchangeA(klen int, ida, idb []byte, priA *PrivateKey, pubB *PublicKey, 
 	return keyExchange(klen, ida, idb, priA, pubB, rpri, rpubB, true)
 }
 
-//****************************************************************************//
-
+// ****************************************************************************//
 func Sm2Sign(priv *PrivateKey, msg, uid []byte, random io.Reader) (r, s *big.Int, err error) {
 	digest, err := priv.PublicKey.Sm3Digest(msg, uid)
 	if err != nil {
 		return nil, nil, err
 	}
+	return Sm2SignWithDigest(priv, digest, uid, random)
+}
+
+// Sm2SignWithDigest 签名摘要
+//
+//	摘要由调用方生成,解决部分摘要签名为sha256等算法的问题
+func Sm2SignWithDigest(priv *PrivateKey, digest, uid []byte, random io.Reader) (r, s *big.Int, err error) {
+
 	e := new(big.Int).SetBytes(digest)
 	c := priv.PublicKey.Curve
 	N := c.Params().N
@@ -214,12 +221,12 @@ func Sm2Verify(pub *PublicKey, msg, uid []byte, r, s *big.Int) bool {
 }
 
 /*
-    za, err := ZA(pub, uid)
-	if err != nil {
-		return
-	}
-	e, err := msgHash(za, msg)
-	hash=e.getBytes()
+	    za, err := ZA(pub, uid)
+		if err != nil {
+			return
+		}
+		e, err := msgHash(za, msg)
+		hash=e.getBytes()
 */
 func Verify(pub *PublicKey, hash []byte, r, s *big.Int) bool {
 	c := pub.Curve
